@@ -1,7 +1,12 @@
 from flask import Flask
 
-app = Flask(__name__)
+application = Flask(__name__)
 
-@app.route("/")
+@application.route("/")
 def hello_world():
+    return "<p>Hello, World!</p>"
+    
+
+@application.post("/api/recommend/")
+def api_recommend():
     return "<p>Hello, World!</p>"

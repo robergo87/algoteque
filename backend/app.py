@@ -1,6 +1,68 @@
-from flask import Flask
+import json
+from os.path import join as path_join, dirname, abspath
+
+from flask import Flask, request, Response, jsonify
+
+
+
+CURR_DIR = dirname(abspath(__file__))
 
 application = Flask(__name__)
+
+
+def load_conf_file():
+    with open(path_join(CURR_DIR, "conf.json"), "r") as f:
+        raw_conf = json.load(f)
+        provider_by_topic = {}
+        for provider, topics in raw_conf.get("provider_topics").items():
+            topics = [topic.strip().lower() for topic in topics.split("+")]
+            for topic in topics:
+                if topic not in provider_by_topic:
+                    provider_by_topic[topic] = set()
+                provider_by_topic[topic].add(provider)
+    return provider_by_topic
+    
+CONF_TOPICS = load_conf_file()
+
+
+def get_top_topics(content):
+    return [
+        {"name": row[0], "qty": row[1]}
+        for row in 
+        sorted(content.get("topics", {}).items(), key=lambda row: row[1], reverse=True)[0:3]
+    ]
+    
+def get_provider_quotes(topics):
+    providers_matching = {} # dict of sets of positions of topics found for provider
+    for index, topic_row in enumerate(topics):
+        for provider in CONF_TOPICS.get(topic_row["name"], set()):
+            if provider not in providers_matching:
+                providers_matching[provider] = set()
+            providers_matching[provider].add(index)    
+            
+    def get_quote(provider_match):
+        score = len(provider_match)
+        if score == 1:
+            if 0 in provider_match:
+                return 0.2 * topics[0]["qty"]
+            if 1 in provider_match:
+                return 0.25 * topics[1]["qty"]
+            if 2 in provider_match:
+                return 0.30 * topics[2]["qty"]
+        if score == 2: 
+            base = sum([
+                topic["qty"] for index, topic in enumerate(topics)
+                if index in provider_match
+            ])
+            return 0.1*base
+        if score == 3: # rare case when all 3 topics match
+            return 0.1*(topics[0]["qty"]+topics[1]["qty"])
+    
+    return [
+        {"provider": provider, "quote": get_quote(provider_match)}
+        for provider, provider_match in providers_matching.items()
+    ]
+
 
 @application.route("/")
 def hello_world():
@@ -9,4 +71,8 @@ def hello_world():
 
 @application.post("/api/recommend/")
 def api_recommend():
-    return "<p>Hello, World!</p>"
+    content = request.get_json(silent=True)
+    if not content:
+        return Response("Invalid request format", status=400)
+    topics = get_top_topics(content)
+    return jsonify(get_provider_quotes(topics))

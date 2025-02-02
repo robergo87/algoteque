@@ -1,0 +1,4 @@
+docker/nginx.crt
+docker/nginx.key
+docker/local.env
+*.pyc

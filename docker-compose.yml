@@ -1,0 +1,52 @@
+version: '3.3'
+services:
+  db:
+    image: postgres:alpine
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+      - ./backups:/backups
+    command: -p 5434
+    restart: always
+    env_file:
+      - ./docker/local.env
+    expose:
+      - "5434"
+    networks:
+        rekrutka:
+  backend:
+    user: root
+    build:
+        context: .
+        dockerfile: docker/backend.Dockerfile
+    command: /rekrutka/app.sh
+    volumes:
+      - ./backend:/rekrutka
+    expose:
+      - "5000"
+    ports:
+      - 5000:5000
+    env_file:
+      - ./docker/local.env
+    depends_on:
+      - db
+    networks:
+        rekrutka:
+  nginx:
+    logging:
+        driver: none
+    build:
+        context: .
+        dockerfile: docker/nginx.Dockerfile
+    ports:
+      - 443:443
+      - 80:80
+    volumes:
+      - .:/rekrutka
+    depends_on:
+      - backend
+      - db
+    restart: "always"
+    networks:
+        rekrutka:
+networks:
+    rekrutka:

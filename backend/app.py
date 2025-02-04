@@ -104,4 +104,4 @@ def api_recommend():
     if not content:
         return Response("Invalid request format", status=400)
     topics = get_top_topics(content)
-    return jsonify(get_provider_quotes(topics))
+    return jsonify({"status": "success", "content": get_provider_quotes(topics)})

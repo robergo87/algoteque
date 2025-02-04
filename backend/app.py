@@ -84,10 +84,13 @@ def handle_401(e):
 def handle_403(e):
     return json.dumps({"status": "error", "message": "You are forbidden to execute such request"}), 403
 
-@application.errorhandler(werkzeug.exceptions.NotFond)
+@application.errorhandler(werkzeug.exceptions.NotFound)
 def handle_404(e):
     return json.dumps({"status": "error", "message": "Requested resource was not found"}), 404
 
+@application.errorhandler(Exception)
+def handle_500(e):
+    return json.dumps({"status": "error", "message": "Internal server error"}), 500
 
 
 @application.route("/")

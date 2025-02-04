@@ -1,15 +1,30 @@
 import json
+from os import getenv
 from os.path import join as path_join, dirname, abspath
 
 from flask import Flask, request, Response, jsonify
-
-
+import sentry_sdk
+from sentry_sdk.integrations.flask import FlaskIntegration
 
 CURR_DIR = dirname(abspath(__file__))
 
 application = Flask(__name__)
 
+SENTRY_DSN = getenv("SENTRY_DSN")
+if SENTRY_DSN:
+    sentry_sdk.init(SENTRY_DSN, integrations=[FlaskIntegration()])
 
+
+def get_top_topics(content):
+    return [
+        {"name": row[0], "qty": row[1]}
+        for row in 
+        sorted(content.get("topics", {}).items(), key=lambda row: row[1], reverse=True)[0:3]
+    ]
+
+
+
+"""
 def load_conf_file():
     with open(path_join(CURR_DIR, "conf.json"), "r") as f:
         raw_conf = json.load(f)
@@ -25,12 +40,6 @@ def load_conf_file():
 CONF_TOPICS = load_conf_file()
 
 
-def get_top_topics(content):
-    return [
-        {"name": row[0], "qty": row[1]}
-        for row in 
-        sorted(content.get("topics", {}).items(), key=lambda row: row[1], reverse=True)[0:3]
-    ]
     
 def get_provider_quotes(topics):
     providers_matching = {} # dict of sets of positions of topics found for provider
@@ -62,6 +71,8 @@ def get_provider_quotes(topics):
         {"provider": provider, "quote": get_quote(provider_match)}
         for provider, provider_match in providers_matching.items()
     ]
+"""
+
 
 
 @application.route("/")

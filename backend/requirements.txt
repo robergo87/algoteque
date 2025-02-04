@@ -3,3 +3,4 @@ Flask
 # Flask-Migrate
 pytest
 sentry-sdk[flask]
+pydantic

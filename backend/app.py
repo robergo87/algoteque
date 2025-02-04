@@ -2,6 +2,10 @@ import json
 from os import getenv
 from os.path import join as path_join, dirname, abspath
 
+from typing import Dict
+from pydantic_core import from_json
+from pydantic import BaseModel, ValidationError, field_validator
+
 import werkzeug
 from flask import Flask, request, Response, jsonify, abort
 import sentry_sdk
@@ -80,19 +84,27 @@ def handle_400(e):
 
 @application.errorhandler(werkzeug.exceptions.Unauthorized)
 def handle_401(e):
-    return json.dumps({"status": "error", "message": "You are not authorized to execute this request"}), 401
+    return jsonify({"status": "error", "message": "You are not authorized to execute this request"}), 401
 
 @application.errorhandler(werkzeug.exceptions.Forbidden)
 def handle_403(e):
-    return json.dumps({"status": "error", "message": "You are forbidden to execute such request"}), 403
+    return jsonify({"status": "error", "message": "You are forbidden to execute such request"}), 403
 
 @application.errorhandler(werkzeug.exceptions.NotFound)
 def handle_404(e):
-    return json.dumps({"status": "error", "message": "Requested resource was not found"}), 404
+    return jsonify({"status": "error", "message": "Requested resource was not found"}), 404
+
+@application.errorhandler(ValueError)
+def handle_500(e):
+    return jsonify({"status": "error", "message": str(e)}), 400
+
+@application.errorhandler(ValidationError)
+def handle_500(e):
+    return jsonify({"status": "error", "message": str(e)}), 400
 
 @application.errorhandler(Exception)
 def handle_500(e):
-    return json.dumps({"status": "error", "message": "Internal server error"}), 500
+    return jsonify({"status": "error", "message": "Internal server error"}), 500
 
 
 @application.route("/")
@@ -100,10 +112,23 @@ def hello_world():
     return "<p>Hello, World!</p>"
     
 
+class RecommendationRequest(BaseModel):
+    topics: Dict[str, int]
+
+    @field_validator('topics')
+    def validate_topics(cls, value):
+        for k,v in value.items():
+            if v <= 0:
+                raise ValueError(f"Invalid topic '{k}' weight {v}")
+
+
 @application.post("/api/recommend/")
 def api_recommend():
-    content = request.get_json(silent=True)
+    content = request.json
     if not content:
         abort(400)
+
+    RecommendationRequest.model_validate(content)  
+        
     topics = get_top_topics(content)
     return jsonify({"status": "success", "content": get_provider_quotes(topics)})

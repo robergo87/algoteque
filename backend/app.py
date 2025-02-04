@@ -3,7 +3,7 @@ from os import getenv
 from os.path import join as path_join, dirname, abspath
 
 import werkzeug
-from flask import Flask, request, Response, jsonify
+from flask import Flask, request, Response, jsonify, abort
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 
@@ -66,6 +66,8 @@ def get_provider_quotes(topics):
         if score == 3: # rare case when all 3 topics match
             return 0.1*(topics[0]["qty"]+topics[1]["qty"])
     
+    if not providers_matching:
+        abort(404)
     return [
         {"provider": provider, "quote": get_quote(provider_match)}
         for provider, provider_match in providers_matching.items()
@@ -102,6 +104,6 @@ def hello_world():
 def api_recommend():
     content = request.get_json(silent=True)
     if not content:
-        return Response("Invalid request format", status=400)
+        abort(400)
     topics = get_top_topics(content)
     return jsonify({"status": "success", "content": get_provider_quotes(topics)})

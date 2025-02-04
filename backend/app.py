@@ -11,6 +11,9 @@ from flask import Flask, request, Response, jsonify, abort
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 
+import logging
+logger = logging.getLogger(__name__)
+
 CURR_DIR = dirname(abspath(__file__))
 
 application = Flask(__name__)
@@ -96,14 +99,17 @@ def handle_404(e):
 
 @application.errorhandler(ValueError)
 def handle_500(e):
+    logger.info("Malformed request", str(e))
     return jsonify({"status": "error", "message": str(e)}), 400
 
 @application.errorhandler(ValidationError)
 def handle_500(e):
+    logger.info("Malformed request", str(e))
     return jsonify({"status": "error", "message": str(e)}), 400
 
 @application.errorhandler(Exception)
 def handle_500(e):
+    logger.error("Execution error", str(e))
     return jsonify({"status": "error", "message": "Internal server error"}), 500
 
 

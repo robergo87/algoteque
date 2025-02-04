@@ -2,6 +2,7 @@ import json
 from os import getenv
 from os.path import join as path_join, dirname, abspath
 
+import werkzeug
 from flask import Flask, request, Response, jsonify
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
@@ -23,8 +24,6 @@ def get_top_topics(content):
     ]
 
 
-
-"""
 def load_conf_file():
     with open(path_join(CURR_DIR, "conf.json"), "r") as f:
         raw_conf = json.load(f)
@@ -71,7 +70,23 @@ def get_provider_quotes(topics):
         {"provider": provider, "quote": get_quote(provider_match)}
         for provider, provider_match in providers_matching.items()
     ]
-"""
+
+
+@application.errorhandler(werkzeug.exceptions.BadRequest)
+def handle_400(e):
+    return json.dumps({"status": "error", "message": "Malformed Request"}), 400
+
+@application.errorhandler(werkzeug.exceptions.Unauthorized)
+def handle_401(e):
+    return json.dumps({"status": "error", "message": "You are not authorized to execute this request"}), 401
+
+@application.errorhandler(werkzeug.exceptions.Forbidden)
+def handle_403(e):
+    return json.dumps({"status": "error", "message": "You are forbidden to execute such request"}), 403
+
+@application.errorhandler(werkzeug.exceptions.NotFond)
+def handle_404(e):
+    return json.dumps({"status": "error", "message": "Requested resource was not found"}), 404
 
 
 
